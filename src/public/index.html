@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>QAOps Tarefas</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<header class="topbar">
+  <h1>QAOps Tarefas</h1>
+  <p>Gerenciador de tarefas standalone &mdash; trabalho pratico DevOps/QAOps</p>
+</header>
+
+<main>
+  <form id="new-task-form" class="new-task-form">
+    <input type="text" id="title" placeholder="Titulo da tarefa" required maxlength="200" />
+    <input type="text" id="assignee" placeholder="Responsavel (opcional)" />
+    <select id="priority">
+      <option value="low">Baixa</option>
+      <option value="medium" selected>Media</option>
+      <option value="high">Alta</option>
+    </select>
+    <input type="date" id="due_date" />
+    <button type="submit">Adicionar tarefa</button>
+  </form>
+
+  <div class="board">
+    <section class="column" data-status="todo">
+      <h2>A fazer</h2>
+      <div class="cards" id="col-todo"></div>
+    </section>
+    <section class="column" data-status="doing">
+      <h2>Em andamento</h2>
+      <div class="cards" id="col-doing"></div>
+    </section>
+    <section class="column" data-status="done">
+      <h2>Concluido</h2>
+      <div class="cards" id="col-done"></div>
+    </section>
+  </div>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

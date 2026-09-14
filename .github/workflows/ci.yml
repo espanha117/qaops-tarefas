@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [main]
+
+jobs:
+  quality-gates:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Gate 1 - Instalar dependencias (build)
+        run: npm ci
+
+      - name: Gate 2 - Analise estatica (lint)
+        run: npm run lint
+
+      - name: Gate 3 - Testes (unitarios + integracao)
+        run: npm test
+
+      - name: Gate 4 - Cobertura de testes
+        run: npm run coverage
+
+      - name: Gate 5 - Auditoria de dependencias
+        run: npm audit --audit-level=high
+
+      - name: Publicar evidencias (relatorio de cobertura)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidencias-qualidade
+          path: coverage/
+          retention-days: 30
