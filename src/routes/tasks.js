@@ -1,13 +1,17 @@
 import { Router } from 'express';
-import { ValidationError, NotFoundError } from '../services/taskService.js';
+import { ValidationError, NotFoundError, ForbiddenError } from '../services/taskService.js';
 
-export function createTasksRouter(taskService) {
+export function createTasksRouter(taskService, { requireAuth } = {}) {
   const router = Router();
+
+  if (requireAuth) {
+    router.use(requireAuth);
+  }
 
   router.get('/', (req, res, next) => {
     try {
       const { status } = req.query;
-      res.json(taskService.list({ status }));
+      res.json(taskService.list({ status }, req.user));
     } catch (err) {
       next(err);
     }
@@ -15,7 +19,7 @@ export function createTasksRouter(taskService) {
 
   router.get('/:id', (req, res, next) => {
     try {
-      res.json(taskService.getById(Number(req.params.id)));
+      res.json(taskService.getById(Number(req.params.id), req.user));
     } catch (err) {
       next(err);
     }
@@ -23,7 +27,7 @@ export function createTasksRouter(taskService) {
 
   router.post('/', (req, res, next) => {
     try {
-      const created = taskService.create(req.body ?? {});
+      const created = taskService.create(req.body ?? {}, req.user);
       res.status(201).json(created);
     } catch (err) {
       next(err);
@@ -32,7 +36,7 @@ export function createTasksRouter(taskService) {
 
   router.patch('/:id', (req, res, next) => {
     try {
-      const updated = taskService.update(Number(req.params.id), req.body ?? {});
+      const updated = taskService.update(Number(req.params.id), req.body ?? {}, req.user);
       res.json(updated);
     } catch (err) {
       next(err);
@@ -41,7 +45,7 @@ export function createTasksRouter(taskService) {
 
   router.delete('/:id', (req, res, next) => {
     try {
-      taskService.remove(Number(req.params.id));
+      taskService.remove(Number(req.params.id), req.user);
       res.status(204).end();
     } catch (err) {
       next(err);
@@ -55,6 +59,9 @@ export function createTasksRouter(taskService) {
     }
     if (err instanceof NotFoundError) {
       return res.status(404).json({ error: err.message });
+    }
+    if (err instanceof ForbiddenError) {
+      return res.status(403).json({ error: err.message });
     }
     console.error(err);
     return res.status(500).json({ error: 'Erro interno.' });

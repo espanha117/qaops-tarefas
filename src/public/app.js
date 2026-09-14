@@ -7,9 +7,45 @@ const columns = {
 };
 
 const form = document.getElementById('new-task-form');
+const currentUserEl = document.getElementById('current-user');
+const logoutBtn = document.getElementById('logout-btn');
+const manageUsersBtn = document.getElementById('manage-users-btn');
+const usersDialog = document.getElementById('users-dialog');
+const closeUsersDialogBtn = document.getElementById('close-users-dialog');
+const newUserForm = document.getElementById('new-user-form');
+const newUserError = document.getElementById('new-user-error');
+const usersList = document.getElementById('users-list');
+
+let currentUser = null;
+
+function goToLogin() {
+  window.location.href = '/login.html';
+}
+
+async function api(path, options = {}) {
+  const res = await fetch(path, { credentials: 'same-origin', ...options });
+  if (res.status === 401) {
+    goToLogin();
+    throw new Error('Nao autenticado.');
+  }
+  return res;
+}
+
+async function loadCurrentUser() {
+  const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
+  if (!res.ok) {
+    goToLogin();
+    return;
+  }
+  currentUser = await res.json();
+  currentUserEl.textContent = `${currentUser.username} (${currentUser.role})`;
+  manageUsersBtn.hidden = currentUser.role !== 'admin';
+
+  await fetchTasks();
+}
 
 async function fetchTasks() {
-  const res = await fetch(API_BASE);
+  const res = await api(API_BASE);
   const tasks = await res.json();
   render(tasks);
 }
@@ -32,6 +68,7 @@ function render(tasks) {
     const bits = [];
     if (task.assignee) bits.push(task.assignee);
     if (task.due_date) bits.push(`prazo: ${task.due_date.slice(0, 10)}`);
+    if (currentUser?.role === 'admin' && task.owner_username) bits.push(`de: ${task.owner_username}`);
     meta.textContent = bits.join(' • ');
 
     const actions = document.createElement('div');
@@ -56,7 +93,7 @@ function render(tasks) {
 }
 
 async function updateTask(id, patch) {
-  await fetch(`${API_BASE}/${id}`, {
+  await api(`${API_BASE}/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(patch),
@@ -65,7 +102,7 @@ async function updateTask(id, patch) {
 }
 
 async function deleteTask(id) {
-  await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
+  await api(`${API_BASE}/${id}`, { method: 'DELETE' });
   fetchTasks();
 }
 
@@ -76,7 +113,7 @@ form.addEventListener('submit', async (event) => {
   const priority = document.getElementById('priority').value;
   const due_date = document.getElementById('due_date').value || null;
 
-  const res = await fetch(API_BASE, {
+  const res = await api(API_BASE, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ title, assignee, priority, due_date }),
@@ -91,4 +128,55 @@ form.addEventListener('submit', async (event) => {
   }
 });
 
-fetchTasks();
+logoutBtn.addEventListener('click', async () => {
+  await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
+  goToLogin();
+});
+
+manageUsersBtn.addEventListener('click', async () => {
+  newUserError.hidden = true;
+  newUserForm.reset();
+  await loadUsers();
+  usersDialog.showModal();
+});
+
+closeUsersDialogBtn.addEventListener('click', () => {
+  usersDialog.close();
+});
+
+async function loadUsers() {
+  const res = await api('/api/users');
+  const users = await res.json();
+  usersList.innerHTML = '';
+  users.forEach((user) => {
+    const li = document.createElement('li');
+    li.textContent = `${user.username} — ${user.role}`;
+    usersList.appendChild(li);
+  });
+}
+
+newUserForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  newUserError.hidden = true;
+
+  const username = document.getElementById('new-username').value;
+  const password = document.getElementById('new-password').value;
+  const role = document.getElementById('new-role').value;
+
+  const res = await api('/api/users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password, role }),
+  });
+
+  if (res.ok) {
+    newUserForm.reset();
+    await loadUsers();
+  } else {
+    const body = await res.json();
+    newUserError.textContent = body.error || 'Erro ao criar usuario.';
+    newUserError.hidden = false;
+  }
+});
+
+loadCurrentUser();

@@ -1,19 +1,9 @@
+import { ValidationError, NotFoundError, ForbiddenError } from '../errors.js';
+
+export { ValidationError, NotFoundError, ForbiddenError };
+
 const STATUSES = ['todo', 'doing', 'done'];
 const PRIORITIES = ['low', 'medium', 'high'];
-
-export class ValidationError extends Error {
-  constructor(message) {
-    super(message);
-    this.name = 'ValidationError';
-  }
-}
-
-export class NotFoundError extends Error {
-  constructor(message) {
-    super(message);
-    this.name = 'NotFoundError';
-  }
-}
 
 function isValidIsoDate(value) {
   if (typeof value !== 'string') return false;
@@ -100,42 +90,78 @@ function validatePatchPayload(payload) {
   return patch;
 }
 
+function isAdmin(user) {
+  return user?.role === 'admin';
+}
+
 export function createTaskService(db) {
-  function getById(id) {
-    const row = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+  // getById nao aplica controle de acesso - uso interno, quando a autorizacao
+  // ja foi decidida pelo chamador (ex.: create, apos inserir a linha).
+  function getRawById(id) {
+    const row = db
+      .prepare(
+        `SELECT tasks.*, users.username AS owner_username
+         FROM tasks LEFT JOIN users ON users.id = tasks.owner_id
+         WHERE tasks.id = ?`
+      )
+      .get(id);
     if (!row) {
       throw new NotFoundError(`Tarefa ${id} nao encontrada.`);
     }
     return row;
   }
 
-  function list({ status } = {}) {
-    if (status !== undefined) {
-      if (!STATUSES.includes(status)) {
-        throw new ValidationError(`status deve ser um de: ${STATUSES.join(', ')}.`);
-      }
-      return db.prepare('SELECT * FROM tasks WHERE status = ? ORDER BY id').all(status);
+  function getById(id, user) {
+    const row = getRawById(id);
+    if (!isAdmin(user) && row.owner_id !== user.id) {
+      throw new ForbiddenError('Voce nao tem acesso a esta tarefa.');
     }
-    return db.prepare('SELECT * FROM tasks ORDER BY id').all();
+    return row;
   }
 
-  function create(payload) {
+  function list({ status } = {}, user) {
+    if (status !== undefined && !STATUSES.includes(status)) {
+      throw new ValidationError(`status deve ser um de: ${STATUSES.join(', ')}.`);
+    }
+
+    const conditions = [];
+    const params = {};
+    if (status !== undefined) {
+      conditions.push('tasks.status = @status');
+      params.status = status;
+    }
+    if (!isAdmin(user)) {
+      conditions.push('tasks.owner_id = @owner_id');
+      params.owner_id = user.id;
+    }
+
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    return db
+      .prepare(
+        `SELECT tasks.*, users.username AS owner_username
+         FROM tasks LEFT JOIN users ON users.id = tasks.owner_id
+         ${where} ORDER BY tasks.id`
+      )
+      .all(params);
+  }
+
+  function create(payload, user) {
     const data = validateCreatePayload(payload);
     const createdAt = new Date().toISOString();
     const completedAt = data.status === 'done' ? createdAt : null;
 
     const result = db
       .prepare(
-        `INSERT INTO tasks (title, description, status, priority, assignee, due_date, created_at, completed_at)
-         VALUES (@title, @description, @status, @priority, @assignee, @due_date, @created_at, @completed_at)`
+        `INSERT INTO tasks (title, description, status, priority, assignee, due_date, owner_id, created_at, completed_at)
+         VALUES (@title, @description, @status, @priority, @assignee, @due_date, @owner_id, @created_at, @completed_at)`
       )
-      .run({ ...data, created_at: createdAt, completed_at: completedAt });
+      .run({ ...data, owner_id: user.id, created_at: createdAt, completed_at: completedAt });
 
-    return getById(result.lastInsertRowid);
+    return getRawById(result.lastInsertRowid);
   }
 
-  function update(id, payload) {
-    const existing = getById(id);
+  function update(id, payload, user) {
+    const existing = getById(id, user);
     const patch = validatePatchPayload(payload);
 
     const nextStatus = patch.status ?? existing.status;
@@ -162,11 +188,11 @@ export function createTaskService(db) {
        WHERE id = @id`
     ).run({ ...merged, id });
 
-    return getById(id);
+    return getRawById(id);
   }
 
-  function remove(id) {
-    getById(id);
+  function remove(id, user) {
+    getById(id, user);
     db.prepare('DELETE FROM tasks WHERE id = ?').run(id);
   }
 

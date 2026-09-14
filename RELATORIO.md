@@ -10,13 +10,13 @@
 
 ## 2. Contexto
 
-O QAOps Tarefas é um gerenciador de tarefas simples, no formato Kanban de três colunas (`todo`, `doing`, `done`), construído como sistema-base para este trabalho prático. Foi desenvolvido deliberadamente pequeno — a disciplina não avalia complexidade do sistema, e sim a qualidade integrada ao fluxo de entrega em volta dele.
+O QAOps Tarefas é um gerenciador de tarefas simples, no formato Kanban de três colunas (`todo`, `doing`, `done`), com login obrigatório e dois papéis de usuário (`admin` e `comum`), construído como sistema-base para este trabalho prático. Foi desenvolvido deliberadamente pequeno — a disciplina não avalia complexidade do sistema, e sim a qualidade integrada ao fluxo de entrega em volta dele.
 
-**Stack técnica**: Node.js + Express no backend, SQLite via módulo nativo `node:sqlite` para persistência (sem dependência externa nem passo de compilação — decisão tomada justamente para manter o requisito de "instalação reproduzível" o mais simples e confiável possível para qualquer avaliador), e um frontend estático em HTML/CSS/JS puro servido pelo próprio Express.
+**Stack técnica**: Node.js + Express no backend, SQLite via módulo nativo `node:sqlite` para persistência (sem dependência externa nem passo de compilação — decisão tomada justamente para manter o requisito de "instalação reproduzível" o mais simples e confiável possível para qualquer avaliador). Autenticação é sessão via cookie `HttpOnly`, com senha em hash `scrypt` (`node:crypto`) — também sem dependência externa, pela mesma razão. Frontend estático em HTML/CSS/JS puro servido pelo próprio Express.
 
-**Arquitetura resumida**: camada HTTP (`src/routes/tasks.js`) fina, delegando toda regra de negócio para uma camada de serviço isolada e pura (`src/services/taskService.js`), que recebe a conexão SQLite por injeção de dependência. Essa separação é o que permite testar as regras de negócio sem precisar subir um servidor HTTP (testes unitários) e, separadamente, testar a API real de ponta a ponta (testes de integração).
+**Arquitetura resumida**: camadas HTTP finas (`src/routes/tasks.js`, `auth.js`, `users.js`), delegando toda regra de negócio para uma camada de serviço isolada e pura (`src/services/taskService.js`, `authService.js`, `sessionService.js`), que recebe a conexão SQLite por injeção de dependência. Essa separação é o que permite testar as regras de negócio sem precisar subir um servidor HTTP (testes unitários) e, separadamente, testar a API real de ponta a ponta (testes de integração). Um middleware (`src/middleware/auth.js`) resolve a sessão a partir do cookie e injeta `req.user`; `taskService` usa esse usuário para filtrar e autorizar cada operação por dono da tarefa.
 
-**Funcionalidade estudada**: CRUD de tarefas com validação de campos e transição de status, detalhado na seção 3.
+**Funcionalidade estudada**: CRUD de tarefas com validação de campos e transição de status, com controle de acesso por usuário (dono da tarefa vê/edita, admin vê/edita tudo), detalhado na seção 3.
 
 ## 3. Riscos
 
@@ -26,6 +26,9 @@ O QAOps Tarefas é um gerenciador de tarefas simples, no formato Kanban de três
 | Aceitar `status`/`priority` fora do enum permitido | Quebra o agrupamento por coluna no Kanban | Teste unitário + gate de testes |
 | `due_date` inválida persistida | Quebra ordenação/exibição de prazos no frontend | Teste unitário + gate de testes |
 | Regressão na transição de status (`completed_at` não atualizado) | Métricas de conclusão ficam erradas | Teste unitário dedicado + gate de testes |
+| Usuário comum acessando/alterando tarefa de outro usuário | Vazamento de dados entre usuários; quebra o isolamento que é a própria razão de ter login | Teste unitário e de integração dedicados (verificam `403`) + gate de testes |
+| Senha armazenada ou comparada de forma insegura (texto puro, hash sem salt, comparação não constante) | Comprometimento de credenciais em caso de vazamento do banco | Uso de `scrypt` com salt por usuário e `timingSafeEqual`, coberto por teste unitário |
+| Sessão sem expiração ou cookie acessível via JavaScript | Sessão roubada (XSS) ou válida indefinidamente | Cookie `HttpOnly`, TTL de 7 dias, teste unitário de expiração |
 | Lógica de negócio sem cobertura de teste | Bugs silenciosos em mudanças futuras | Gate de cobertura mínima |
 | Dependência com vulnerabilidade conhecida | Superfície de ataque desnecessária | Gate de auditoria de dependências |
 | Código com padrão inseguro/óbvio não identificado | Bug ou vulnerabilidade que passa despercebida | Gate de análise estática |
@@ -52,8 +55,14 @@ O histórico de execuções na aba **Actions** do repositório é a evidência p
 
 **Estratégia**: dois níveis, cobrindo os comportamentos de risco listados na seção 3.
 
-- **Unitários** (`test/unit/taskService.test.js`): testam a camada de serviço isoladamente, com um banco SQLite em memória injetado — sem HTTP, execução rápida. Cobrem casos positivos (criação e atualização válidas) e negativos (título vazio, status/priority inválidos, data inválida), além da regra de transição de `completed_at`.
-- **Integração/API** (`test/integration/tasks.api.test.js`, via Supertest): sobem o Express real (sem `listen`, direto contra o `app`) e validam os endpoints REST de ponta a ponta — status HTTP corretos (`201`, `400`, `404`, `204`) e efeitos colaterais observáveis pelo cliente da API.
+- **Unitários** (`test/unit/`): testam cada camada de serviço isoladamente, com um banco SQLite em memória injetado — sem HTTP, execução rápida.
+  - `taskService.test.js`: casos positivos (criação e atualização válidas) e negativos (título vazio, status/priority inválidos, data inválida), a regra de transição de `completed_at`, e controle de acesso por dono (`comum` só vê/edita as próprias, `admin` vê/edita tudo, `ForbiddenError` para acesso indevido).
+  - `authService.test.js`: criação de usuário (validação de username/senha/role, unicidade), verificação de credenciais (`AuthError` para senha ou usuário inválidos), listagem sem expor hash/salt.
+  - `sessionService.test.js`: criação, resolução e expiração de sessão, e invalidação no logout.
+- **Integração/API** (`test/integration/`, via Supertest): sobem o Express real (sem `listen`, direto contra o `app`) e validam os endpoints REST de ponta a ponta.
+  - `tasks.api.test.js`: status HTTP corretos (`201`, `400`, `401`, `403`, `404`, `204`), e que a listagem/edição respeita o isolamento por usuário (`comum` vs `admin`).
+  - `auth.api.test.js`: login com cookie de sessão, `401` para credenciais inválidas ou sessão ausente, logout invalidando a sessão.
+  - `users.api.test.js`: criação/listagem de usuários restrita a `admin` (`403` para `comum`), `400` para username duplicado.
 
 Justificativa dos níveis escolhidos: unitário garante que a lógica de negócio está correta isoladamente; integração garante que a camada HTTP (roteamento, serialização, tratamento de erro) está corretamente conectada a essa lógica — um teste unitário passando não garante que a rota exponha o comportamento certo, e vice-versa.
 
@@ -86,7 +95,7 @@ Comparação: a única diferença entre a execução aprovada e a reprovada é a
 - **Quais riscos foram efetivamente cobertos e quais permaneceram?** Os riscos de validação de entrada e transição de status (seção 3) estão cobertos por teste automatizado e gate de cobertura. Não cobrimos riscos de concorrência (duas requisições simultâneas escrevendo na mesma tarefa) nem de carga/performance — fora do escopo mínimo da disciplina, mas seriam o próximo passo natural.
 - **O pipeline fornece feedback rápido e compreensível?** Sim — a execução completa roda em menos de um minuto no GitHub Actions, e cada gate é um step isolado no log, então o ponto exato de falha é imediato de identificar (demonstrado no experimento reprovado).
 - **Quais verificações continuam manuais?** Revisão de código (PR review), validação visual do Kanban no navegador, e a decisão de se uma vulnerabilidade `moderate` do `npm audit` (que não bloqueia) merece correção antes do próximo release.
-- **Qual é o custo de manter os testes e gates?** Baixo neste estágio (25 testes, execução em segundos), mas cresce com o sistema — cada novo campo/regra de negócio exige atualizar `taskService.test.js` e potencialmente ajustar o limiar de cobertura.
+- **Qual é o custo de manter os testes e gates?** Baixo neste estágio (69 testes, execução em poucos segundos), mas cresce com o sistema — cada novo campo/regra de negócio exige atualizar os testes de serviço correspondentes e potencialmente ajustar o limiar de cobertura.
 - **O que diferencia automação isolada de uma prática DevOps/QAOps?** Automação isolada seria só "ter um script de teste"; aqui a qualidade está integrada ao fluxo de entrega — todo push é verificado, o pipeline bloqueia automaticamente alterações que quebram um comportamento coberto, e há evidência auditável (histórico do Actions) de cada decisão de aprovar ou reprovar, não apenas um teste rodado manualmente antes de um release.
 - **O que seria necessário para incluir implantação e observabilidade com segurança?** Um gate adicional de deploy (ex.: publicar em um serviço como Render/Railway) condicionado aos 5 gates atuais, gerenciamento de segredos via mecanismo nativo da plataforma de CI (nunca no repositório), e instrumentação de logs/métricas (ex.: tempo de resposta da API, taxa de erro) com alertas — hoje o sistema não tem observabilidade em runtime, só evidências de tempo de build.
 

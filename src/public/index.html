@@ -8,8 +8,15 @@
 </head>
 <body>
 <header class="topbar">
-  <h1>QAOps Tarefas</h1>
-  <p>Gerenciador de tarefas standalone &mdash; trabalho pratico DevOps/QAOps</p>
+  <div>
+    <h1>QAOps Tarefas</h1>
+    <p>Gerenciador de tarefas standalone &mdash; trabalho pratico DevOps/QAOps</p>
+  </div>
+  <div class="user-bar">
+    <span id="current-user"></span>
+    <button id="manage-users-btn" type="button" hidden>Usuarios</button>
+    <button id="logout-btn" type="button">Sair</button>
+  </div>
 </header>
 
 <main>
@@ -40,6 +47,22 @@
     </section>
   </div>
 </main>
+
+<dialog id="users-dialog">
+  <h2>Usuarios</h2>
+  <form id="new-user-form">
+    <input type="text" id="new-username" placeholder="Usuario" required maxlength="50" />
+    <input type="password" id="new-password" placeholder="Senha (min. 6 caracteres)" required minlength="6" />
+    <select id="new-role">
+      <option value="comum" selected>Comum</option>
+      <option value="admin">Admin</option>
+    </select>
+    <button type="submit">Criar usuario</button>
+    <p id="new-user-error" class="error" hidden></p>
+  </form>
+  <ul id="users-list"></ul>
+  <button id="close-users-dialog" type="button">Fechar</button>
+</dialog>
 
 <script src="app.js"></script>
 </body>

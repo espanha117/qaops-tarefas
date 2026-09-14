@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Entrar — QAOps Tarefas</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body class="login-body">
+<main class="login-card">
+  <h1>QAOps Tarefas</h1>
+  <p class="muted">Entre com seu usuario e senha.</p>
+
+  <form id="login-form">
+    <label for="username">Usuario</label>
+    <input type="text" id="username" name="username" autocomplete="username" required />
+
+    <label for="password">Senha</label>
+    <input type="password" id="password" name="password" autocomplete="current-password" required />
+
+    <button type="submit">Entrar</button>
+    <p id="login-error" class="error" hidden></p>
+  </form>
+
+  <p class="muted"><a href="register.html">Criar conta</a></p>
+</main>
+
+<script src="login.js"></script>
+</body>
+</html>
