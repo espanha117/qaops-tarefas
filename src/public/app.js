@@ -21,6 +21,12 @@ const currentUserEl = document.getElementById('current-user');
 const currentUserAvatar = document.getElementById('current-user-avatar');
 const logoutBtn = document.getElementById('logout-btn');
 const searchInput = document.getElementById('search');
+const adminFilters = document.getElementById('admin-filters');
+const filterAssignee = document.getElementById('filter-assignee');
+const filterPriority = document.getElementById('filter-priority');
+const clearFiltersBtn = document.getElementById('clear-filters');
+// Valor especial do filtro para tarefas sem responsavel
+const NO_ASSIGNEE = '__none__';
 
 const taskDialog = document.getElementById('task-dialog');
 const taskForm = document.getElementById('task-form');
@@ -119,6 +125,7 @@ async function loadCurrentUser() {
   currentUserEl.textContent = currentUser.username;
   currentUserAvatar.textContent = currentUser.username.charAt(0).toUpperCase();
   manageUsersBtn.hidden = currentUser.role !== 'admin';
+  adminFilters.hidden = currentUser.role !== 'admin';
 
   await Promise.all([fetchTasks(), loadAssigneeOptions()]);
 }
@@ -144,7 +151,58 @@ async function fetchTasks() {
 }
 
 function render() {
-  renderSummary(allTasks);
+  if (currentUser?.role === 'admin') updateAssigneeFilterOptions();
+  renderSummary(filteredTasks());
+  renderBoard();
+}
+
+// Filtros de responsavel/prioridade: so aparecem para admin, que ve as
+// tarefas de todos. O resumo e o quadro mostram apenas o que passou no filtro.
+function filteredTasks() {
+  if (currentUser?.role !== 'admin') return allTasks;
+  const assignee = filterAssignee.value;
+  const priority = filterPriority.value;
+  return allTasks.filter((t) => {
+    if (priority && t.priority !== priority) return false;
+    if (assignee === NO_ASSIGNEE) return !t.assignee;
+    if (assignee && t.assignee !== assignee) return false;
+    return true;
+  });
+}
+
+function updateAssigneeFilterOptions() {
+  const selected = filterAssignee.value;
+  const names = [...new Set(allTasks.map((t) => t.assignee).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b, 'pt-BR')
+  );
+  const hasUnassigned = allTasks.some((t) => !t.assignee);
+
+  filterAssignee.innerHTML = '';
+  const addOption = (value, label) => {
+    const opt = document.createElement('option');
+    opt.value = value;
+    opt.textContent = label;
+    filterAssignee.appendChild(opt);
+  };
+  addOption('', 'Todos os responsáveis');
+  names.forEach((name) => addOption(name, name));
+  if (hasUnassigned) addOption(NO_ASSIGNEE, 'Sem responsável');
+
+  // Mantem a escolha atual se ela ainda existir
+  const stillExists = [...filterAssignee.options].some((o) => o.value === selected);
+  filterAssignee.value = stillExists ? selected : '';
+  syncFilterState();
+}
+
+function syncFilterState() {
+  filterAssignee.classList.toggle('is-set', Boolean(filterAssignee.value));
+  filterPriority.classList.toggle('is-set', Boolean(filterPriority.value));
+  clearFiltersBtn.hidden = !filterAssignee.value && !filterPriority.value;
+}
+
+function onFilterChange() {
+  syncFilterState();
+  renderSummary(filteredTasks());
   renderBoard();
 }
 
@@ -200,7 +258,9 @@ function renderSummary(tasks) {
 
 function renderBoard() {
   const term = searchInput.value.trim().toLowerCase();
-  const visible = term ? allTasks.filter((t) => t.title.toLowerCase().includes(term)) : allTasks;
+  const base = filteredTasks();
+  const visible = term ? base.filter((t) => t.title.toLowerCase().includes(term)) : base;
+  const filtering = Boolean(term) || base.length !== allTasks.length;
 
   STATUSES.forEach((status) => {
     const col = columns[status];
@@ -218,7 +278,7 @@ function renderBoard() {
     if (!list.length) {
       const empty = document.createElement('div');
       empty.className = 'empty';
-      empty.textContent = term ? 'Nenhuma tarefa encontrada' : 'Nenhuma tarefa';
+      empty.textContent = filtering ? 'Nenhuma tarefa encontrada' : 'Nenhuma tarefa';
       col.appendChild(empty);
       return;
     }
@@ -461,6 +521,13 @@ taskDialog.addEventListener('click', (e) => {
 });
 
 searchInput.addEventListener('input', renderBoard);
+filterAssignee.addEventListener('change', onFilterChange);
+filterPriority.addEventListener('change', onFilterChange);
+clearFiltersBtn.addEventListener('click', () => {
+  filterAssignee.value = '';
+  filterPriority.value = '';
+  onFilterChange();
+});
 
 // Tooltip da barra de distribuicao
 const distBar = document.getElementById('dist-bar');

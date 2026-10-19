@@ -55,9 +55,23 @@
   <div class="dist-tooltip" id="dist-tooltip" hidden></div>
 </section>
 
-<div class="search-wrap">
-  <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M10 2a8 8 0 0 1 6.32 12.9l5.39 5.39-1.42 1.42-5.39-5.39A8 8 0 1 1 10 2m0 2a6 6 0 1 0 0 12 6 6 0 0 0 0-12"/></svg>
-  <input type="search" id="search" placeholder="Pesquisar por título..." autocomplete="off" />
+<div class="toolbar">
+  <div class="search-wrap">
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M10 2a8 8 0 0 1 6.32 12.9l5.39 5.39-1.42 1.42-5.39-5.39A8 8 0 1 1 10 2m0 2a6 6 0 1 0 0 12 6 6 0 0 0 0-12"/></svg>
+    <input type="search" id="search" placeholder="Pesquisar por título..." autocomplete="off" />
+  </div>
+  <div class="admin-filters" id="admin-filters" hidden>
+    <select id="filter-assignee" aria-label="Filtrar por responsável">
+      <option value="">Todos os responsáveis</option>
+    </select>
+    <select id="filter-priority" aria-label="Filtrar por prioridade">
+      <option value="">Todas as prioridades</option>
+      <option value="high">Alta</option>
+      <option value="medium">Média</option>
+      <option value="low">Baixa</option>
+    </select>
+    <button type="button" class="btn btn-ghost btn-sm" id="clear-filters" hidden>Limpar filtros</button>
+  </div>
 </div>
 
 <main class="board">

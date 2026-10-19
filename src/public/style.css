@@ -331,10 +331,43 @@ textarea {
 
 /* Busca */
 
+.toolbar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 24px 16px;
+}
+
 .search-wrap {
   position: relative;
-  margin: 0 24px 16px;
+  flex: 1 1 260px;
   color: var(--muted);
+}
+
+.admin-filters {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.admin-filters select {
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  outline: none;
+  cursor: pointer;
+}
+
+.admin-filters select:focus {
+  border-color: var(--accent);
+}
+
+.admin-filters select.is-set {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
 }
 
 .search-wrap svg {
@@ -822,9 +855,14 @@ textarea {
     padding-right: 16px;
   }
 
-  .search-wrap {
+  .toolbar {
     margin-left: 16px;
     margin-right: 16px;
+  }
+
+  .admin-filters,
+  .admin-filters select {
+    flex: 1 1 140px;
   }
 
   .board {
