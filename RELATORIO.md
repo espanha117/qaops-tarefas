@@ -4,7 +4,7 @@
 
 - **Integrantes**: _Integrante 1 (nome completo)_ e _Integrante 2 (nome completo)_
 - **Sistema**: QAOps Tarefas — gerenciador de tarefas (Kanban) standalone
-- **Repositório**: _URL do repositório no GitHub (a preencher após o push)_
+- **Repositório**: <https://github.com/espanha117/qaops-tarefas>
 - **Plataforma de CI**: GitHub Actions
 - **Data**: _a preencher na entrega_
 
@@ -35,7 +35,7 @@ O QAOps Tarefas é um gerenciador de tarefas simples, no formato Kanban de três
 
 ## 4. Pipeline
 
-Arquivo: `.github/workflows/ci.yml`. Gatilhos: `push` (qualquer branch) e `pull_request` para a branch principal — cobre tanto o fluxo de desenvolvimento em branch quanto a validação antes de merge.
+Arquivo: `.github/workflows/ci.yml`. Gatilhos: `push` (qualquer branch) e `pull_request` para a branch principal (`master`) — cobre tanto o fluxo de desenvolvimento em branch quanto a validação antes de merge.
 
 Fluxo de decisão (cada etapa roda em sequência; se uma falhar, as seguintes não executam e o job é marcado como falho):
 
@@ -84,18 +84,26 @@ Cinco gates, todos bloqueantes (o pipeline não avança/aprova se qualquer um fa
 
 | Cenário | Procedimento | Resultado |
 |---|---|---|
-| **Aprovado** | Push na branch principal com o código íntegro | Todos os 5 gates verdes. Link da execução: _a preencher_ |
-| **Reprovado** | Branch `experimento/falha-controlada`: remoção deliberada da validação de título vazio em `src/services/taskService.js` (`validateCreatePayload`) | Gate 3 (Testes) falha — o teste unitário `rejeita titulo vazio` passa a receber uma tarefa criada em vez da exceção esperada. Gates 1 e 2 (build e lint) continuam verdes, mostrando que o pipeline aponta com precisão qual gate barrou. Link da execução: _a preencher_ |
-| **Correção** | Commit seguinte restaura a validação removida | Todos os 5 gates voltam a ficar verdes. Link da execução: _a preencher_ |
+Todas as execuções foram feitas em 26/10/2026 e estão preservadas na aba **Actions** do repositório.
 
-Comparação: a única diferença entre a execução aprovada e a reprovada é a ausência de uma verificação de 3 linhas — o suficiente para demonstrar que o pipeline de fato impede que uma alteração que quebra um comportamento coberto por teste avance no fluxo de entrega, respondendo à questão central do enunciado.
+| Cenário | Procedimento | Resultado |
+|---|---|---|
+| **Aprovado** | Push na branch `master` com o código íntegro (commit `7f570a5`) | Todos os 5 gates verdes, em 20 s. Execução: <https://github.com/espanha117/qaops-tarefas/actions/runs/40379359112> |
+| **Reprovado** | Branch `experimento/falha-controlada`, commit `112c45d`: remoção deliberada das 3 linhas que validam título vazio em `src/services/taskService.js` (`validateCreatePayload`) | Gates 1 e 2 (build e lint) verdes; **Gate 3 (Testes) falha** com 2 de 73 testes reprovados — o unitário `create > rejeita titulo vazio` e o de integração `POST /api/tasks > retorna 400 para titulo vazio`. Gates 4 e 5 não chegam a executar. Execução: <https://github.com/espanha117/qaops-tarefas/actions/runs/40381350067> |
+| **Correção** | Commit `1f41b5b` (revert do anterior) restaura a validação removida, na mesma branch | Todos os 5 gates voltam a ficar verdes, em 23 s. Execução: <https://github.com/espanha117/qaops-tarefas/actions/runs/40381495351> |
+
+Comparação: a única diferença entre a execução aprovada e a reprovada é a ausência de uma verificação de 3 linhas. Isso basta para mostrar que o pipeline impede que uma alteração que quebra um comportamento coberto por teste avance no fluxo de entrega, o que responde à questão central do enunciado. A alteração quebrada passou pelo build e pelo lint, porque o código continuava sintaticamente válido. Quem detectou o erro foram os testes, e por dois níveis diferentes (unitário e integração), o que confirma o valor de ter as duas camadas.
+
+**Reprovação não planejada (evidência adicional).** Em 19/10/2026, dois pushes na `master` foram bloqueados pelo **Gate 5 (auditoria de dependências)** sem que o código do sistema tivesse mudado nesse aspecto. Depois da última execução verde (14/09), foram publicadas vulnerabilidades de severidade *high* no `body-parser` (dependência do Express) e no `brace-expansion`. Execução bloqueada: <https://github.com/espanha117/qaops-tarefas/actions/runs/39265702696>. A correção foi atualizar as dependências dentro das faixas de versão já permitidas no `package.json` (`npm update`, commit `ab15a66`), e o pipeline voltou a aprovar na execução 40379359112 citada acima. O caso mostra que o gate de dependências protege contra riscos que surgem *fora* do código do projeto.
+
+**Limitação observada.** Na execução reprovada, o passo "Publicar evidências" rodou (`if: always()`), mas não encontrou a pasta `coverage/`, porque o Gate 4 não chegou a executar. Por isso não houve artefato. A evidência da falha fica só no log do Gate 3. Uma melhoria possível é gerar também um relatório de testes (por exemplo JUnit XML) e publicá-lo mesmo em caso de falha.
 
 ## 8. Análise crítica
 
 - **Quais riscos foram efetivamente cobertos e quais permaneceram?** Os riscos de validação de entrada e transição de status (seção 3) estão cobertos por teste automatizado e gate de cobertura. Não cobrimos riscos de concorrência (duas requisições simultâneas escrevendo na mesma tarefa) nem de carga/performance — fora do escopo mínimo da disciplina, mas seriam o próximo passo natural.
 - **O pipeline fornece feedback rápido e compreensível?** Sim — a execução completa roda em menos de um minuto no GitHub Actions, e cada gate é um step isolado no log, então o ponto exato de falha é imediato de identificar (demonstrado no experimento reprovado).
 - **Quais verificações continuam manuais?** Revisão de código (PR review), validação visual do Kanban no navegador, e a decisão de se uma vulnerabilidade `moderate` do `npm audit` (que não bloqueia) merece correção antes do próximo release.
-- **Qual é o custo de manter os testes e gates?** Baixo neste estágio (69 testes, execução em poucos segundos), mas cresce com o sistema — cada novo campo/regra de negócio exige atualizar os testes de serviço correspondentes e potencialmente ajustar o limiar de cobertura.
+- **Qual é o custo de manter os testes e gates?** Baixo neste estágio (73 testes, execução em poucos segundos), mas cresce com o sistema — cada novo campo/regra de negócio exige atualizar os testes de serviço correspondentes e potencialmente ajustar o limiar de cobertura.
 - **O que diferencia automação isolada de uma prática DevOps/QAOps?** Automação isolada seria só "ter um script de teste"; aqui a qualidade está integrada ao fluxo de entrega — todo push é verificado, o pipeline bloqueia automaticamente alterações que quebram um comportamento coberto, e há evidência auditável (histórico do Actions) de cada decisão de aprovar ou reprovar, não apenas um teste rodado manualmente antes de um release.
 - **O que seria necessário para incluir implantação e observabilidade com segurança?** Um gate adicional de deploy (ex.: publicar em um serviço como Render/Railway) condicionado aos 5 gates atuais, gerenciamento de segredos via mecanismo nativo da plataforma de CI (nunca no repositório), e instrumentação de logs/métricas (ex.: tempo de resposta da API, taxa de erro) com alertas — hoje o sistema não tem observabilidade em runtime, só evidências de tempo de build.
 
