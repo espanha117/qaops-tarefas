@@ -13,6 +13,9 @@ function isValidIsoDate(value) {
 
 function validateCreatePayload(payload) {
   const title = typeof payload.title === 'string' ? payload.title.trim() : '';
+  if (!title) {
+    throw new ValidationError('title e obrigatorio e nao pode ser vazio.');
+  }
   if (title.length > 200) {
     throw new ValidationError('title deve ter no maximo 200 caracteres.');
   }
