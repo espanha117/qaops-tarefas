@@ -144,7 +144,7 @@ test/
 
 | Integrante | Contribuição |
 |---|---|
-| _Integrante 1 (nome completo)_ | _a preencher_ |
-| _Integrante 2 (nome completo)_ | _a preencher_ |
+| _Integrante 1 Adriana V. Seelig_ | _a preencher_ |
+| _Integrante 2 Gabriel A. Espanhol_ | _a preencher_ |
 
 Detalhes de contribuição individual no relatório técnico (`RELATORIO.md`, seção 9).
