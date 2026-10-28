@@ -19,7 +19,7 @@ Tem login obrigatório e dois tipos de usuário: **admin** (vê e gerencia as ta
 npm install
 ```
 
-O banco SQLite é criado automaticamente em `data/tasks.db` no primeiro start — não é necessário nenhum serviço externo. É necessário, porém, um usuário administrador para poder entrar no sistema; nenhuma credencial fica no repositório, então crie a sua localmente antes do primeiro start:
+O banco SQLite é criado automaticamente em `data/tasks.db` no primeiro start, não é necessário nenhum serviço externo. É necessário, porém, um usuário administrador para poder entrar no sistema; nenhuma credencial fica no repositório, então crie a sua localmente antes do primeiro start:
 
 ```bash
 ADMIN_USERNAME=admin ADMIN_PASSWORD=escolha-uma-senha npm start
