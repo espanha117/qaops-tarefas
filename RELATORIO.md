@@ -2,7 +2,7 @@
 
 ## 1. Identificação
 
-- **Integrantes**: _Integrante 1 (nome completo)_ e _Integrante 2 (nome completo)_
+- **Integrantes**: Adriana V. Seelig e Gabriel A. Espanhol
 - **Sistema**: QAOps Tarefas — gerenciador de tarefas (Kanban) standalone
 - **Repositório**: <https://github.com/espanha117/qaops-tarefas>
 - **Plataforma de CI**: GitHub Actions
