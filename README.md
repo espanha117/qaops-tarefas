@@ -1,5 +1,7 @@
 # QAOps Tarefas
 
+Trabalho prático da disciplina de Qualidade de Software do curso de Sistemas de Informação, UFSM (campus Frederico Westphalen), ministrada pelo Prof. Dr. Joel da Silva.
+
 Gerenciador de tarefas standalone (Kanban simples), construído como sistema-base para o trabalho prático de DevOps/QAOps. É um produto independente: código, dependências e banco de dados próprios — não compartilha nada com nenhum outro sistema.
 
 Tem login obrigatório e dois tipos de usuário: **admin** (vê e gerencia as tarefas de todos) e **comum** (vê e gerencia só as próprias).
@@ -12,6 +14,14 @@ Tem login obrigatório e dois tipos de usuário: **admin** (vê e gerencia as ta
 - Testes: Vitest (unitários + integração via Supertest) e cobertura (`@vitest/coverage-v8`)
 - Lint: ESLint (flat config)
 - Frontend: HTML/CSS/JS puro, servido como estático pelo próprio Express
+
+## Pré-requisitos
+
+- Node.js 22.5 ou superior (necessário para o módulo nativo `node:sqlite`)
+- npm (instalado junto com o Node.js)
+- Git, para clonar o repositório
+
+Para conferir a versão instalada: `node -v`
 
 ## Instalação e execução
 
@@ -139,6 +149,13 @@ test/
   unit/                      # testes de services isolados (DB em memória)
   integration/                # testes de API via Supertest (auth, users, tasks)
 ```
+
+## Como contribuir
+
+1. Crie uma branch a partir da `master`: `git checkout -b minha-alteracao`
+2. Faça as alterações e rode localmente `npm run lint` e `npm test`
+3. Faça o commit com uma mensagem descritiva e envie a branch
+4. Abra um Pull Request; o pipeline de CI precisa passar antes do merge
 
 ## Equipe
 
