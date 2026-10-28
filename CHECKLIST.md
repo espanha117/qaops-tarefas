@@ -7,9 +7,8 @@ Atualizado em 28/10/2026 · Legenda: `[x]` concluído · `[ ]` pendente
 ## 1. Requisitos mínimos do sistema
 
 - [x] Código-fonte versionado em Git
-- [x] Procedimento reproduzível de instalação e execução (README, seção "Instalação e execução")
+- [x] Procedimento de instalação e execução (no README, seção "Instalação e execução")
 - [x] Arquivo declarativo de dependências (`package.json` e `package-lock.json`)
-- [x] Funcionalidade com comportamento verificável (CRUD de tarefas com validação e controle de acesso por usuário)
 - [x] Testes executados por comando (`npm test`)
 - [x] Nenhuma credencial, dado pessoal ou segredo no repositório (admin criado por variável de ambiente; banco no `.gitignore`)
 
@@ -23,11 +22,10 @@ Atualizado em 28/10/2026 · Legenda: `[x]` concluído · `[ ]` pendente
 
 - [x] Acionado por `push` (qualquer branch) e `pull_request` para a `master`
 - [x] Instalação de dependências (`npm ci`)
-- [x] Análise estática (`npm run lint`, ESLint)
 - [x] Testes automatizados (`npm test`, Vitest)
 - [x] Cobertura (`npm run coverage`)
 - [x] Auditoria de dependências (`npm audit --audit-level=high`)
-- [x] Publicação de resultados (relatório de cobertura salvo como artifact)
+- [x] Publicação de resultados
 
 ## 4. Testes
 
@@ -55,20 +53,19 @@ Atualizado em 28/10/2026 · Legenda: `[x]` concluído · `[ ]` pendente
 
 ## 7. Relatório técnico ([`RELATORIO.md`](RELATORIO.md))
 
-- [ ] 1. Identificação: nomes dos integrantes e data
-- [x] 2. Contexto
-- [x] 3. Riscos
-- [x] 4. Pipeline
-- [x] 5. Testes
-- [x] 6. Quality gates
-- [x] 7. Experimentos
-- [x] 8. Análise crítica
-- [ ] 9. Contribuições de cada integrante
+- [x] 1. Contexto
+- [x] 2. Riscos
+- [x] 3. Pipeline
+- [x] 4. Testes
+- [x] 5. Quality gates
+- [x] 6. Experimentos
+- [x] 7. Análise crítica
+- [ ] 8. Contribuições de cada integrante
 - [x] Referências
 - [ ] Revisão final e conferência do tamanho (6 a 10 páginas)
 
 ## 8. Apresentação e entrega
 
 - [ ] Pré-avaliação (29/10/2026)
-- [ ] Apresentação final (10 a 12 min): acionamento, execução aprovada, reprovação, evidências e correção
+- [ ] Preparar apresentação final (10 a 12 min)
 - [ ] Registro final da dupla preenchido
