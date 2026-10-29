@@ -82,8 +82,6 @@ Cinco gates, todos bloqueantes (o pipeline não avança/aprova se qualquer um fa
 
 ## 7. Experimentos
 
-| Cenário | Procedimento | Resultado |
-|---|---|---|
 Todas as execuções foram feitas em 26/10/2026 e estão preservadas na aba **Actions** do repositório.
 
 | Cenário | Procedimento | Resultado |

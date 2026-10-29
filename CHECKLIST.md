@@ -16,7 +16,7 @@ Atualizado em 28/10/2026 · Legenda: `[x]` concluído · `[ ]` pendente
 
 - [x] Código, testes, pipeline e dependências organizados
 - [x] README com instalação, testes, regras de negócio, API e estrutura do projeto
-- [ ] Commits identificáveis dos dois integrantes (em andamento)
+- [x] Commits identificáveis dos dois integrantes
 
 ## 3. Pipeline ([`ci.yml`](.github/workflows/ci.yml), GitHub Actions)
 
@@ -53,14 +53,15 @@ Atualizado em 28/10/2026 · Legenda: `[x]` concluído · `[ ]` pendente
 
 ## 7. Relatório técnico ([`RELATORIO.md`](RELATORIO.md))
 
-- [x] 1. Contexto
-- [x] 2. Riscos
-- [x] 3. Pipeline
-- [x] 4. Testes
-- [x] 5. Quality gates
-- [x] 6. Experimentos
-- [x] 7. Análise crítica
-- [ ] 8. Contribuições de cada integrante
+- [ ] 1. Identificação (falta a data da entrega)
+- [x] 2. Contexto
+- [x] 3. Riscos
+- [x] 4. Pipeline
+- [x] 5. Testes
+- [x] 6. Quality gates
+- [x] 7. Experimentos
+- [x] 8. Análise crítica
+- [ ] 9. Contribuições de cada integrante
 - [x] Referências
 - [ ] Revisão final e conferência do tamanho (6 a 10 páginas)
 
