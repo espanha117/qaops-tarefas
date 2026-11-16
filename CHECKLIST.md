@@ -32,7 +32,7 @@ Atualizado em 16/11/2026 · Legenda: `[x]` concluído · `[ ]` pendente
 - [x] Casos positivos e negativos
 - [x] Testes unitários dos services ([`test/unit/`](test/unit))
 - [x] Testes de integração da API com Supertest ([`test/integration/`](test/integration))
-- [x] 75 testes ligados aos riscos levantados ([relatório, seção 3](RELATORIO.md#3-riscos))
+- [x] 77 testes ligados aos riscos levantados ([relatório, seção 3](RELATORIO.md#3-riscos))
 
 ## 5. Quality gates (mínimo exigido: 3)
 
