@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { createTasksRouter } from './routes/tasks.js';
 import { createAuthRouter } from './routes/auth.js';
 import { createUsersRouter } from './routes/users.js';
+import { createHealthRouter } from './routes/health.js';
 import { createTaskService } from './services/taskService.js';
 import { createAuthService } from './services/authService.js';
 import { createSessionService } from './services/sessionService.js';
@@ -42,6 +43,7 @@ export function createApp(db) {
   bootstrapAdmin(authService);
 
   app.use(express.json());
+  app.use('/health', createHealthRouter(db));
   app.use('/api/auth', createAuthRouter({ authService, sessionService, requireAuth }));
   app.use('/api/users', createUsersRouter({ authService, requireAuth, requireAdmin }));
   app.use('/api/tasks', createTasksRouter(taskService, { requireAuth }));
