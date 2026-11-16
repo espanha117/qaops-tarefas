@@ -44,6 +44,8 @@ jobs:
           npm start &
           for i in $(seq 1 20); do
             if curl --silent --fail http://localhost:3000/health; then
+              echo
+              echo "Smoke test aprovado: /health respondeu 200"
               exit 0
             fi
             sleep 1
