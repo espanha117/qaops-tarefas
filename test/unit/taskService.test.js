@@ -23,6 +23,15 @@ describe('create', () => {
     expect(() => taskService.create({ title: '   ' }, alice)).toThrow(ValidationError);
   });
 
+  it('rejeita titulo acima de 200 caracteres', () => {
+    expect(() => taskService.create({ title: 'a'.repeat(201) }, alice)).toThrow(ValidationError);
+  });
+
+  it('aceita titulo com exatamente 200 caracteres', () => {
+    const task = taskService.create({ title: 'a'.repeat(200) }, alice);
+    expect(task.title).toHaveLength(200);
+  });
+
   it('rejeita status invalido', () => {
     expect(() => taskService.create({ title: 'Tarefa', status: 'invalido' }, alice)).toThrow(ValidationError);
   });
