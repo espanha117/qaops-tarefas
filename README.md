@@ -98,15 +98,22 @@ CRUD de tarefas organizadas em um Kanban de 3 colunas (`todo` / `doing` / `done`
 
 ## Pipeline de qualidade (CI)
 
-Definido em [`.github/workflows/ci.yml`](.github/workflows/ci.yml), disparado em todo `push` e `pull_request`. Cinco gates sequenciais, cada um bloqueando o pipeline se falhar — detalhes de critério/justificativa/evidência/consequência no relatório técnico ([`RELATORIO.md`](RELATORIO.md), seção 6):
+Definido em [`.github/workflows/ci.yml`](.github/workflows/ci.yml), disparado em todo `push` e `pull_request`. Seis gates sequenciais, cada um bloqueando o pipeline se falhar — detalhes de critério/justificativa/evidência/consequência no relatório técnico ([`RELATORIO.md`](RELATORIO.md), seção 6):
 
 1. Instalação de dependências (`npm ci`)
 2. Análise estática (`npm run lint`)
 3. Testes automatizados (`npm test`)
 4. Cobertura mínima (`npm run coverage`)
 5. Auditoria de dependências (`npm audit --audit-level=high`)
+6. Smoke test: sobe a aplicação e confere `GET /health`
+
+O pipeline também roda toda segunda-feira (execução agendada), mesmo sem commits, e o Dependabot abre PRs semanais de atualização de dependências.
 
 O relatório de cobertura é publicado como artifact da execução no GitHub Actions.
+
+## Monitoramento
+
+`GET /health` é público e responde `200` com `{ "status": "ok", "uptime": <segundos>, "db": "ok" }`, ou `503` se o banco não responder. É o endereço usado pelo smoke test do pipeline e por qualquer ferramenta de monitoramento de disponibilidade.
 
 ## Inspecionar o banco (SQLite)
 

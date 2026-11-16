@@ -35,7 +35,7 @@ O QAOps Tarefas é um gerenciador de tarefas simples, no formato Kanban de três
 
 ## 4. Pipeline
 
-Arquivo: `.github/workflows/ci.yml`. Gatilhos: `push` (qualquer branch) e `pull_request` para a branch principal (`master`) — cobre tanto o fluxo de desenvolvimento em branch quanto a validação antes de merge.
+Arquivo: `.github/workflows/ci.yml`. Gatilhos: `push` (qualquer branch) e `pull_request` para a branch principal (`master`) — cobre tanto o fluxo de desenvolvimento em branch quanto a validação antes de merge. Além disso, uma execução agendada (`schedule`, toda segunda-feira) roda o pipeline mesmo sem commits, e o Dependabot (`.github/dependabot.yml`) abre semanalmente PRs de atualização de dependências, que passam pelos mesmos gates.
 
 Fluxo de decisão (cada etapa roda em sequência; se uma falhar, as seguintes não executam e o job é marcado como falho):
 
@@ -47,7 +47,8 @@ Fluxo de decisão (cada etapa roda em sequência; se uma falhar, as seguintes n�
 | 4 | Testes | `npm test` (Vitest) | Comportamentos verificados |
 | 5 | Cobertura | `npm run coverage` | Lógica crítica coberta acima do limiar |
 | 6 | Auditoria de dependências | `npm audit --audit-level=high` | Sem vulnerabilidade alta/crítica conhecida |
-| 7 | Publicação de evidências | `actions/upload-artifact` | Relatório de cobertura anexado à execução |
+| 7 | Smoke test | `npm start` + `curl` em `/health` | Aplicação sobe e responde, com banco acessível |
+| 8 | Publicação de evidências | `actions/upload-artifact` | Relatório de cobertura anexado à execução |
 
 O histórico de execuções na aba **Actions** do repositório é a evidência primária de cada rodada do pipeline.
 
@@ -63,12 +64,13 @@ O histórico de execuções na aba **Actions** do repositório é a evidência p
   - `tasks.api.test.js`: status HTTP corretos (`201`, `400`, `401`, `403`, `404`, `204`), e que a listagem/edição respeita o isolamento por usuário (`comum` vs `admin`).
   - `auth.api.test.js`: login com cookie de sessão, `401` para credenciais inválidas ou sessão ausente, logout invalidando a sessão.
   - `users.api.test.js`: criação/listagem de usuários restrita a `admin` (`403` para `comum`), `400` para username duplicado.
+  - `health.api.test.js`: `/health` responde `200` sem sessão e `503` quando o banco está indisponível.
 
 Justificativa dos níveis escolhidos: unitário garante que a lógica de negócio está correta isoladamente; integração garante que a camada HTTP (roteamento, serialização, tratamento de erro) está corretamente conectada a essa lógica — um teste unitário passando não garante que a rota exponha o comportamento certo, e vice-versa.
 
 ## 6. Quality gates
 
-Cinco gates, todos bloqueantes (o pipeline não avança/aprova se qualquer um falhar):
+Seis gates, todos bloqueantes (o pipeline não avança/aprova se qualquer um falhar):
 
 | Gate | Critério mensurável | Justificativa (risco) | Momento | Evidência | Consequência | Limitação/exceção |
 |---|---|---|---|---|---|---|
@@ -76,7 +78,8 @@ Cinco gates, todos bloqueantes (o pipeline não avança/aprova se qualquer um fa
 | Análise estática | 0 erros do ESLint (regras recomendadas + `no-unused-vars`, `eqeqeq`) | Padrões inseguros/bugs óbvios não capturados por teste | Após instalação | Log do ESLint no Actions | Bloqueia o pipeline | Não substitui revisão humana; só cobre regras configuradas |
 | Testes | 100% dos testes unitários e de integração aprovados | Regressão em criação, validação ou transição de status de tarefas | Após lint | Saída do Vitest no log do Actions | Bloqueia o pipeline | Só cobre comportamentos com teste escrito |
 | Cobertura | ≥75% linhas/statements/funções e ≥60% branches em `src/services/` (limiar definido em `vitest.config.js`) | Lógica de negócio crítica sem verificação automatizada | Após os testes | Relatório de cobertura v8 (artifact + log) | Bloqueia o pipeline | Cobertura alta é proxy, não garante ausência de bugs |
-| Dependências | 0 vulnerabilidades `high`/`critical` no `npm audit` | Uso de pacote com vulnerabilidade conhecida | Após cobertura | Log do `npm audit` no Actions | Bloqueia e exige revisão manual da dependência | Só cobre advisories conhecidas do registry npm |
+| Dependências | 0 vulnerabilidades `high`/`critical` no `npm audit` | Uso de pacote com vulnerabilidade conhecida | Após cobertura e na execução agendada semanal | Log do `npm audit` no Actions | Bloqueia e exige revisão manual da dependência | Só cobre advisories conhecidas do registry npm |
+| Smoke test | `GET /health` responde `200` em até 20 s após `npm start` | Código que passa nos testes mas não sobe (erro de inicialização, banco inacessível) | Após a auditoria | Resposta JSON do `/health` no log do Actions | Bloqueia o pipeline | Verifica só que a aplicação sobe; não testa funcionalidades nem desempenho |
 
 **Por que esses limiares e não outros**: 75% de cobertura em linhas/statements foi escolhido por ser um patamar alto o bastante para forçar cobertura da maior parte dos ramos de validação (o módulo mais arriscado do sistema), sem exigir 100% — que tende a gerar testes artificiais só para "bater número". O limiar de branch em 60% é mais permissivo porque a função `update` tem combinações de campos opcionais que geram muitos ramos; exigir 75% ali levaria a testes redundantes sem ganho real de confiança. `audit-level=high` foi escolhido para não bloquear o pipeline por vulnerabilidades de baixo impacto (ruído), mantendo o bloqueio reservado para risco real.
 
@@ -101,9 +104,9 @@ Comparação: a única diferença entre a execução aprovada e a reprovada é a
 - **Quais riscos foram efetivamente cobertos e quais permaneceram?** Os riscos de validação de entrada e transição de status (seção 3) estão cobertos por teste automatizado e gate de cobertura. Não cobrimos riscos de concorrência (duas requisições simultâneas escrevendo na mesma tarefa) nem de carga/performance — fora do escopo mínimo da disciplina, mas seriam o próximo passo natural.
 - **O pipeline fornece feedback rápido e compreensível?** Sim — a execução completa roda em menos de um minuto no GitHub Actions, e cada gate é um step isolado no log, então o ponto exato de falha é imediato de identificar (demonstrado no experimento reprovado).
 - **Quais verificações continuam manuais?** Revisão de código (PR review), validação visual do Kanban no navegador, e a decisão de se uma vulnerabilidade `moderate` do `npm audit` (que não bloqueia) merece correção antes do próximo release.
-- **Qual é o custo de manter os testes e gates?** Baixo neste estágio (73 testes, execução em poucos segundos), mas cresce com o sistema — cada novo campo/regra de negócio exige atualizar os testes de serviço correspondentes e potencialmente ajustar o limiar de cobertura.
+- **Qual é o custo de manter os testes e gates?** Baixo neste estágio (75 testes, execução em poucos segundos), mas cresce com o sistema — cada novo campo/regra de negócio exige atualizar os testes de serviço correspondentes e potencialmente ajustar o limiar de cobertura.
 - **O que diferencia automação isolada de uma prática DevOps/QAOps?** Automação isolada seria só "ter um script de teste"; aqui a qualidade está integrada ao fluxo de entrega — todo push é verificado, o pipeline bloqueia automaticamente alterações que quebram um comportamento coberto, e há evidência auditável (histórico do Actions) de cada decisão de aprovar ou reprovar, não apenas um teste rodado manualmente antes de um release.
-- **O que seria necessário para incluir implantação e observabilidade com segurança?** Um gate adicional de deploy (ex.: publicar em um serviço como Render/Railway) condicionado aos 5 gates atuais, gerenciamento de segredos via mecanismo nativo da plataforma de CI (nunca no repositório), e instrumentação de logs/métricas (ex.: tempo de resposta da API, taxa de erro) com alertas — hoje o sistema não tem observabilidade em runtime, só evidências de tempo de build.
+- **O que seria necessário para incluir implantação e observabilidade com segurança?** Um gate adicional de deploy (ex.: publicar em um serviço como Render/Railway) condicionado aos gates atuais, gerenciamento de segredos via mecanismo nativo da plataforma de CI (nunca no repositório), e instrumentação de logs/métricas (ex.: tempo de resposta da API, taxa de erro) com alertas. Parte disso já foi feito: a aplicação expõe `/health` (processo e banco), o pipeline confere que ela sobe (Gate 6) e o próprio pipeline é monitorado por execução agendada e Dependabot, o que teria detectado o incidente de 19/10 sem depender de um push. Continuam faltando o deploy real, um monitor externo de disponibilidade com alertas, logs estruturados e métricas de tempo de resposta e taxa de erro.
 
 ## 9. Contribuições
 

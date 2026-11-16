@@ -2,7 +2,7 @@
 
 Acompanhamento dos requisitos do enunciado do Projeto Prático DevOps e QAOps.
 
-Atualizado em 28/10/2026 · Legenda: `[x]` concluído · `[ ]` pendente
+Atualizado em 16/11/2026 · Legenda: `[x]` concluído · `[ ]` pendente
 
 ## 1. Requisitos mínimos do sistema
 
@@ -32,7 +32,7 @@ Atualizado em 28/10/2026 · Legenda: `[x]` concluído · `[ ]` pendente
 - [x] Casos positivos e negativos
 - [x] Testes unitários dos services ([`test/unit/`](test/unit))
 - [x] Testes de integração da API com Supertest ([`test/integration/`](test/integration))
-- [x] 73 testes ligados aos riscos levantados ([relatório, seção 3](RELATORIO.md#3-riscos))
+- [x] 75 testes ligados aos riscos levantados ([relatório, seção 3](RELATORIO.md#3-riscos))
 
 ## 5. Quality gates (mínimo exigido: 3)
 
@@ -70,3 +70,13 @@ Atualizado em 28/10/2026 · Legenda: `[x]` concluído · `[ ]` pendente
 - [ ] Pré-avaliação (29/10/2026)
 - [ ] Preparar apresentação final (10 a 12 min)
 - [ ] Registro final da dupla preenchido
+
+## 9. Monitoramento (evolução, etapa MONITOR do ciclo DevOps)
+
+- [x] Endpoint de health check `/health` ([#21](https://github.com/espanha117/qaops-tarefas/issues/21))
+- [ ] Log estruturado de requisições em JSON ([#22](https://github.com/espanha117/qaops-tarefas/issues/22))
+- [ ] Métricas no formato Prometheus em `/metrics` ([#23](https://github.com/espanha117/qaops-tarefas/issues/23))
+- [x] Smoke test no pipeline: subir a aplicação e checar `/health` ([#24](https://github.com/espanha117/qaops-tarefas/issues/24))
+- [x] Execução agendada do pipeline e Dependabot ([#25](https://github.com/espanha117/qaops-tarefas/issues/25))
+- [ ] Resumo da execução no GitHub Actions ([#26](https://github.com/espanha117/qaops-tarefas/issues/26))
+- [ ] Documentar monitoramento no relatório e no README ([#27](https://github.com/espanha117/qaops-tarefas/issues/27))

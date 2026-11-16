@@ -5,6 +5,11 @@ on:
     branches: ['**']
   pull_request:
     branches: [master]
+  # Roda toda segunda-feira as 9h (UTC) mesmo sem commits, para detectar
+  # vulnerabilidades novas em dependencias (caso do Gate 5 em 19/10/2026).
+  schedule:
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
 
 jobs:
   quality-gates:
@@ -33,6 +38,20 @@ jobs:
 
       - name: Gate 5 - Auditoria de dependencias
         run: npm audit --audit-level=high
+
+      - name: Gate 6 - Smoke test (aplicacao sobe e responde /health)
+        run: |
+          npm start &
+          for i in $(seq 1 20); do
+            if curl --silent --fail http://localhost:3000/health; then
+              echo
+              echo "Smoke test aprovado: /health respondeu 200"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "A aplicacao nao respondeu em /health em 20 s"
+          exit 1
 
       - name: Publicar evidencias (relatorio de cobertura)
         if: always()
