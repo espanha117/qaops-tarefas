@@ -19,7 +19,7 @@
     "db:query": "node scripts/db-query.js"
   },
   "dependencies": {
-    "express": "^4.19.2"
+    "express": "^5.3.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
