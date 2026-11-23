@@ -38,7 +38,7 @@ O QAOps Tarefas é um gerenciador de tarefas simples, no formato Kanban de três
 | Atualização de dependência que quebra compatibilidade | Uma versão nova pode mudar o comportamento do framework | PRs do Dependabot passam pelos gates; atualizações *major* exigem revisão humana |
 | Código com padrão inseguro/óbvio não identificado | Bug ou vulnerabilidade que passa despercebida | Gate de análise estática |
 | Aplicação que passa nos testes mas não sobe | Erro de inicialização ou banco inacessível só apareceria em uso | Gate 6 (smoke test em `/health`) |
-| Sistema fora do ar ou lento em produção | Usuários sem acesso, sem ninguém perceber | Prometheus + Grafana na VM, com alerta **[PENDENTE: confirmar regras de alerta configuradas]** |
+| Sistema fora do ar ou lento em produção | Usuários sem acesso, sem ninguém perceber | Regras de alerta no Prometheus, exibidas no Grafana (sem notificação automática; ver seção 4.1) |
 
 ## 4. Pipeline
 
@@ -70,10 +70,10 @@ Para cobrir as etapas DEPLOY, OPERATE e MONITOR do ciclo DevOps, o sistema é im
 | Contêiner da aplicação (`Dockerfile`) | Executa o QAOps Tarefas; a política de reinício do Compose o religa automaticamente se ele cair |
 | Volume Docker | Guarda o arquivo SQLite fora do contêiner, então os dados sobrevivem a novos deploys |
 | `.env` só na VM | Senha do admin e demais segredos ficam fora do repositório |
-| Prometheus | Coleta periodicamente as métricas expostas pela aplicação em `/metrics` |
-| Grafana | Painéis de disponibilidade e desempenho e alertas |
+| Prometheus | Coleta periodicamente as métricas expostas pela aplicação em `/metrics` e avalia 4 regras de alerta |
+| Grafana | Painéis de disponibilidade e desempenho, com os alertas do Prometheus em destaque |
 
-**[PENDENTE: listar as métricas expostas em `/metrics`, os painéis criados no Grafana e as regras de alerta.]**
+As regras de alerta ficam no Prometheus: quando uma condição é atingida, o alerta passa ao estado *firing* e aparece na interface do Prometheus e no painel do Grafana. **Não há notificação automática** (e-mail ou mensagem); alguém precisa estar olhando o painel para perceber. **[PENDENTE: listar as métricas expostas em `/metrics`, os painéis do Grafana e as 4 regras de alerta.]**
 
 **Como uma versão aprovada chega à VM.** Como a VM só é acessível pela VPN, os runners do GitHub Actions (que rodam na nuvem) não conseguem se conectar a ela. **[PENDENTE: descrever a forma escolhida — por exemplo, um *self-hosted runner* instalado na VM, que busca os jobs no GitHub por conexão de saída e executa `docker compose up -d --build` apenas após os 6 gates aprovarem um push na `master`; ou deploy manual pela Adriana com o mesmo comando.]**
 
@@ -142,7 +142,7 @@ Comparação: a única diferença entre a execução aprovada e a reprovada é a
 - **Quais verificações continuam manuais?** Revisão de código (PR review), validação visual do Kanban no navegador, a decisão de se uma vulnerabilidade `moderate` do `npm audit` (que não bloqueia) merece correção, e a aceitação de atualizações *major* propostas pelo Dependabot — o caso do Express 5 mostra que pipeline verde não basta quando os testes não cobrem tudo o que a atualização pode afetar.
 - **Qual é o custo de manter os testes e gates?** Baixo neste estágio (77 testes **[PENDENTE: 80]**, execução em poucos segundos), mas cresce com o sistema: cada novo campo/regra de negócio exige atualizar os testes de serviço correspondentes e potencialmente ajustar o limiar de cobertura. O Dependabot acrescenta um custo novo: PRs semanais para revisar e conflitos no `package-lock.json` quando vários entram em sequência. A VM acrescenta a manutenção do Docker, do Prometheus e do Grafana.
 - **O que diferencia automação isolada de uma prática DevOps/QAOps?** Automação isolada seria só "ter um script de teste"; aqui a qualidade está integrada ao fluxo de entrega — todo push é verificado, o pipeline bloqueia automaticamente alterações que quebram um comportamento coberto, o próprio pipeline roda periodicamente para detectar riscos externos, e há evidência auditável (histórico do Actions) de cada decisão de aprovar ou reprovar. Com a VM, o ciclo se fecha: o que o monitoramento mostra em produção volta como feedback para o planejamento.
-- **O que seria necessário para incluir implantação e observabilidade com segurança?** Os elementos que adotamos: implantar só versões aprovadas pelos gates; manter segredos fora do repositório (`.env` na VM e GitHub Secrets); isolar o ambiente (VM atrás de pfSense, acesso por VPN); dados persistentes fora do contêiner (volume); e observabilidade com health check, métricas (Prometheus), painéis e alertas (Grafana). **[PENDENTE: registrar o que ficou faltando depois da implantação — por exemplo, rollback automático, backup do volume do SQLite, logs centralizados, HTTPS.]** Um cuidado específico: um *self-hosted runner* em repositório público pode executar código de PRs de terceiros, então ele deve atender apenas jobs de push na `master`, com aprovação manual para workflows vindos de forks.
+- **O que seria necessário para incluir implantação e observabilidade com segurança?** Os elementos que adotamos: implantar só versões aprovadas pelos gates; manter segredos fora do repositório (`.env` na VM e GitHub Secrets); isolar o ambiente (VM atrás de pfSense, acesso por VPN); dados persistentes fora do contêiner (volume); e observabilidade com health check, métricas e regras de alerta (Prometheus) e painéis (Grafana). Ficou faltando a notificação dos alertas: hoje eles só aparecem na tela, e o passo seguinte seria um contato de e-mail ou Telegram (via Alertmanager ou Grafana). **[PENDENTE: registrar o que mais ficou faltando depois da implantação — por exemplo, deploy automático, backup do volume do SQLite, logs centralizados, HTTPS.]** Um cuidado específico: um *self-hosted runner* em repositório público pode executar código de PRs de terceiros, então ele deve atender apenas jobs de push na `master`, com aprovação manual para workflows vindos de forks.
 
 ## 9. Contribuições
 
