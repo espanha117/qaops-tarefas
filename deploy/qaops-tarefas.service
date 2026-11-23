@@ -1,0 +1,19 @@
+# Modelo de servico systemd para rodar o QAOps Tarefas na VM.
+# Copiar para /etc/systemd/system/qaops-tarefas.service e ajustar User,
+# WorkingDirectory e o caminho do node (confira com: which node).
+[Unit]
+Description=QAOps Tarefas (gerenciador de tarefas Kanban)
+After=network.target
+
+[Service]
+Type=simple
+User=deploy
+WorkingDirectory=/home/deploy/qaops-tarefas
+# PORT, ADMIN_USERNAME e ADMIN_PASSWORD ficam neste arquivo, fora do repositorio
+EnvironmentFile=/etc/qaops-tarefas.env
+ExecStart=/usr/bin/node src/server.js
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
