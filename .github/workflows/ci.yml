@@ -60,3 +60,71 @@ jobs:
           name: evidencias-qualidade
           path: coverage/
           retention-days: 30
+
+  # Implanta na VM so codigo novo da master que passou pelos 6 gates. Fica
+  # desligado (job pulado) ate a VM ser configurada e a variavel do
+  # repositorio DEPLOY_ENABLED ser definida como 'true' (ver README).
+  deploy:
+    needs: quality-gates
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: producao
+      url: ${{ vars.APP_URL }}
+    concurrency:
+      group: deploy-producao
+      cancel-in-progress: false
+    env:
+      APP_DIR: ${{ vars.VM_APP_DIR || 'qaops-tarefas' }}
+      APP_PORT: ${{ vars.VM_APP_PORT || '3000' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar acesso SSH a VM
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_USER: ${{ secrets.VM_USER }}
+          VM_SSH_PORT: ${{ vars.VM_SSH_PORT || '22' }}
+          VM_SSH_KEY: ${{ secrets.VM_SSH_KEY }}
+          VM_SSH_KNOWN_HOSTS: ${{ secrets.VM_SSH_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VM_SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          # Chave do servidor fixada (sem ssh-keyscan aqui) para evitar
+          # conectar numa maquina falsa.
+          printf '%s\n' "$VM_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<CONFIG
+          Host vm
+            HostName $VM_HOST
+            User $VM_USER
+            Port $VM_SSH_PORT
+            IdentityFile ~/.ssh/id_deploy
+            StrictHostKeyChecking yes
+            BatchMode yes
+          CONFIG
+
+      - name: Registrar versao em execucao (para rollback)
+        id: anterior
+        run: echo "commit=$(ssh vm "cd '$APP_DIR' && git rev-parse HEAD")" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy na VM
+        run: ssh vm 'bash -s' -- "$GITHUB_SHA" "$APP_DIR" < scripts/deploy.sh
+
+      - name: Verificacao pos-deploy (/health na VM)
+        run: |
+          for i in $(seq 1 30); do
+            if ssh vm "curl --silent --fail http://localhost:$APP_PORT/health"; then
+              echo
+              echo "Deploy aprovado: /health respondeu 200 na VM"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "A aplicacao nao respondeu em /health na VM em 60 s"
+          exit 1
+
+      - name: Rollback para a versao anterior
+        if: failure() && steps.anterior.outputs.commit != ''
+        run: ssh vm 'bash -s' -- "${{ steps.anterior.outputs.commit }}" "$APP_DIR" < scripts/deploy.sh
