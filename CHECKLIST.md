@@ -2,7 +2,7 @@
 
 Acompanhamento dos requisitos do enunciado do Projeto Prático DevOps e QAOps.
 
-Atualizado em 16/11/2026 · Legenda: `[x]` concluído · `[ ]` pendente
+Atualizado em 23/11/2026 · Legenda: `[x]` concluído · `[ ]` pendente
 
 ## 1. Requisitos mínimos do sistema
 
@@ -74,9 +74,13 @@ Atualizado em 16/11/2026 · Legenda: `[x]` concluído · `[ ]` pendente
 ## 9. Monitoramento (evolução, etapa MONITOR do ciclo DevOps)
 
 - [x] Endpoint de health check `/health` ([#21](https://github.com/espanha117/qaops-tarefas/issues/21))
-- [ ] Log estruturado de requisições em JSON ([#22](https://github.com/espanha117/qaops-tarefas/issues/22))
-- [ ] Métricas no formato Prometheus em `/metrics` ([#23](https://github.com/espanha117/qaops-tarefas/issues/23))
+- [ ] ~~Log estruturado de requisições em JSON~~ ([#22](https://github.com/espanha117/qaops-tarefas/issues/22)) — fora do escopo
+- [ ] ~~Métricas no formato Prometheus em `/metrics`~~ ([#23](https://github.com/espanha117/qaops-tarefas/issues/23)) — fora do escopo
 - [x] Smoke test no pipeline: subir a aplicação e checar `/health` ([#24](https://github.com/espanha117/qaops-tarefas/issues/24))
 - [x] Execução agendada do pipeline e Dependabot ([#25](https://github.com/espanha117/qaops-tarefas/issues/25))
-- [ ] Resumo da execução no GitHub Actions ([#26](https://github.com/espanha117/qaops-tarefas/issues/26))
-- [ ] Documentar monitoramento no relatório e no README ([#27](https://github.com/espanha117/qaops-tarefas/issues/27))
+- [ ] ~~Resumo da execução no GitHub Actions~~ ([#26](https://github.com/espanha117/qaops-tarefas/issues/26)) — fora do escopo
+- [x] Documentar monitoramento no relatório e no README ([#27](https://github.com/espanha117/qaops-tarefas/issues/27))
+- [x] Job de deploy na VM no pipeline, com verificação pós-deploy e rollback ([#34](https://github.com/espanha117/qaops-tarefas/issues/34))
+- [ ] Preparar a VM e configurar os secrets no GitHub ([#34](https://github.com/espanha117/qaops-tarefas/issues/34))
+- [ ] Monitor externo chamando `/health` na VM, com alerta ([#34](https://github.com/espanha117/qaops-tarefas/issues/34))
+- [ ] Registrar deploy e monitoramento no relatório (seções 4, 6 e 8)

@@ -109,11 +109,55 @@ Definido em [`.github/workflows/ci.yml`](.github/workflows/ci.yml), disparado em
 
 O pipeline também roda toda segunda-feira (execução agendada), mesmo sem commits, e o Dependabot abre PRs semanais de atualização de dependências.
 
+Depois dos gates, um segundo job (`deploy`) implanta a versão aprovada numa VM. Ele só roda em push na `master` e fica desligado até a VM ser configurada (ver [Deploy na VM](#deploy-na-vm)).
+
 O relatório de cobertura é publicado como artifact da execução no GitHub Actions.
 
 ## Monitoramento
 
 `GET /health` é público e responde `200` com `{ "status": "ok", "uptime": <segundos>, "db": "ok" }`, ou `503` se o banco não responder. É o endereço usado pelo smoke test do pipeline e por qualquer ferramenta de monitoramento de disponibilidade.
+
+## Deploy na VM
+
+O job `deploy` do [`ci.yml`](.github/workflows/ci.yml) roda depois que os 6 gates aprovam, só em push na `master` (nunca em PR nem na execução agendada):
+
+1. entra na VM por SSH e anota a versão que está rodando;
+2. executa [`scripts/deploy.sh`](scripts/deploy.sh) na VM: `git reset --hard` para o commit aprovado, `npm ci --omit=dev` e `systemctl restart qaops-tarefas`. O banco (`data/tasks.db`) é ignorado pelo Git e não é apagado;
+3. chama `/health` na VM por até 60 s;
+4. se a verificação falhar, faz **rollback** para a versão anterior com o mesmo script.
+
+Cada deploy fica registrado no ambiente `producao` (aba **Deployments** do repositório).
+
+### Preparar a VM (uma vez)
+
+1. Instalar Node.js 22.5 ou superior, `git` e `curl`.
+2. Criar um usuário para o deploy (ex.: `deploy`) e, com ele, clonar o repositório e instalar: `git clone https://github.com/espanha117/qaops-tarefas.git && cd qaops-tarefas && npm ci --omit=dev`.
+3. Criar `/etc/qaops-tarefas.env` (fora do repositório, legível só pelo root e pelo serviço) com `PORT=3000`, `ADMIN_USERNAME=...` e `ADMIN_PASSWORD=...`.
+4. Instalar o serviço a partir do modelo [`deploy/qaops-tarefas.service`](deploy/qaops-tarefas.service) (ajustar usuário, pasta e caminho do `node`) e ativar: `sudo systemctl enable --now qaops-tarefas`.
+5. Permitir que o usuário de deploy reinicie **só** esse serviço sem senha, com `sudo visudo -f /etc/sudoers.d/qaops-tarefas`:
+   `deploy ALL=(root) NOPASSWD: /usr/bin/systemctl restart qaops-tarefas` (confira o caminho com `which systemctl`).
+6. Gerar um par de chaves SSH só para o deploy (`ssh-keygen -t ed25519 -f qaops-deploy -N ""`) e colocar a chave pública em `~deploy/.ssh/authorized_keys`.
+7. Conferir: `curl http://localhost:3000/health` deve responder `{"status":"ok",...}`.
+
+### Configurar o GitHub (Settings → Secrets and variables → Actions)
+
+| Tipo | Nome | Valor |
+|---|---|---|
+| Secret | `VM_HOST` | IP ou nome da VM |
+| Secret | `VM_USER` | usuário de deploy (ex.: `deploy`) |
+| Secret | `VM_SSH_KEY` | conteúdo da chave **privada** gerada no passo 6 |
+| Secret | `VM_SSH_KNOWN_HOSTS` | saída de `ssh-keyscan -p <porta> <host>` rodado de uma máquina confiável |
+| Variable | `DEPLOY_ENABLED` | `true` (liga o job) |
+| Variable (opcional) | `VM_SSH_PORT` | porta do SSH, se não for 22 |
+| Variable (opcional) | `VM_APP_DIR` | pasta da aplicação, se não for `~/qaops-tarefas` |
+| Variable (opcional) | `VM_APP_PORT` | porta da aplicação, se não for 3000 |
+| Variable (opcional) | `APP_URL` | endereço público, aparece como link no deploy |
+
+IP, usuário, chaves e senhas ficam só nos secrets do GitHub e na VM, nunca no repositório. A VM precisa aceitar SSH vindo da internet (os runners do GitHub Actions não estão na rede local). Se isso não for possível, a alternativa é instalar um *self-hosted runner* na própria VM.
+
+### Monitoramento
+
+O `/health` é público e não exige login, então qualquer ferramenta de monitoramento de disponibilidade pode consultá-lo. Os logs da aplicação vão para o journal do systemd (`journalctl -u qaops-tarefas`).
 
 ## Inspecionar o banco (SQLite)
 
@@ -145,6 +189,7 @@ src/
     tasks.js                # endpoints REST de tarefas (autenticado, filtrado por dono)
     auth.js                 # login/logout/me
     users.js                # gestão de usuários (somente admin)
+    health.js               # GET /health (público, usado pelo monitoramento)
   services/
     taskService.js          # regras de negócio de tarefas (validação, transição de status, dono)
     authService.js           # criação de usuário, hash/verificação de senha
@@ -152,9 +197,13 @@ src/
   public/                    # frontend estático (login + Kanban)
 scripts/
   seed-admin.js              # cria o primeiro usuário admin fora do bootstrap automático
+  db-query.js                # consulta/altera o banco pela linha de comando
+  deploy.sh                  # executado na VM pelo job de deploy (e no rollback)
+deploy/
+  qaops-tarefas.service      # modelo de serviço systemd para a VM
 test/
   unit/                      # testes de services isolados (DB em memória)
-  integration/                # testes de API via Supertest (auth, users, tasks)
+  integration/                # testes de API via Supertest (auth, users, tasks, health)
 ```
 
 ## Como contribuir
