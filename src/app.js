@@ -32,7 +32,7 @@ export function bootstrapAdmin(authService, env = process.env) {
   console.log(`Usuario admin "${username}" criado a partir de ADMIN_USERNAME/ADMIN_PASSWORD.`);
 }
 
-export function createApp(db) {
+export function createApp(db, { metrics } = {}) {
   const app = express();
 
   const taskService = createTaskService(db);
@@ -41,6 +41,10 @@ export function createApp(db) {
   const { requireAuth, requireAdmin } = createAuthMiddleware(sessionService);
 
   bootstrapAdmin(authService);
+
+  // Conta as requisicoes para o monitoramento. As metricas em si sao servidas
+  // numa porta separada (ver server.js), que nao fica exposta para fora da VM.
+  if (metrics) app.use(metrics.middleware);
 
   app.use(express.json());
   app.use('/health', createHealthRouter(db));

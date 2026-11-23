@@ -1,0 +1,65 @@
+# Sobe o sistema e o monitoramento na VM:  docker compose up -d --build
+# Portas abertas para fora: 3000 (sistema) e 3001 (Grafana). As metricas do app
+# (porta 9464), o Prometheus e o node-exporter ficam so na rede interna.
+services:
+  app:
+    build: .
+    container_name: qaops-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      METRICS_PORT: 9464
+      ADMIN_USERNAME: ${ADMIN_USERNAME}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+    volumes:
+      - app-data:/app/data
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    container_name: qaops-prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=15d
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alertas.yml:/etc/prometheus/alertas.yml:ro
+      - prometheus-data:/prometheus
+    # Para ver a tela do Prometheus de fora, use um tunel SSH:
+    #   ssh -L 9090:localhost:9090 usuario@ip-da-vm   e abra http://localhost:9090
+    ports:
+      - "127.0.0.1:9090:9090"
+
+  node-exporter:
+    image: prom/node-exporter:v1.9.1
+    container_name: qaops-node-exporter
+    restart: unless-stopped
+    command:
+      - --path.rootfs=/host
+    pid: host
+    volumes:
+      - /:/host:ro,rslave
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    container_name: qaops-grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+volumes:
+  app-data:
+  prometheus-data:
+  grafana-data:
