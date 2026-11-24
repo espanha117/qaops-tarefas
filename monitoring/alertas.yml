@@ -1,0 +1,36 @@
+# Regras de alerta. Aparecem em Prometheus > Alerts (e no painel do Grafana).
+groups:
+  - name: qaops-tarefas
+    rules:
+      - alert: SistemaForaDoAr
+        expr: up{job="qaops-app"} == 0
+        for: 1m
+        labels:
+          severity: critica
+        annotations:
+          summary: "O qaops-tarefas nao responde ha mais de 1 minuto"
+
+      - alert: TaxaDeErros5xxAlta
+        expr: |
+          sum(rate(http_request_duration_seconds_count{status=~"5.."}[5m]))
+            / sum(rate(http_request_duration_seconds_count[5m])) > 0.05
+        for: 2m
+        labels:
+          severity: alta
+        annotations:
+          summary: "Mais de 5% das requisicoes terminaram em erro 5xx"
+
+      - alert: MuitosAcessosNegados
+        expr: sum(increase(http_request_duration_seconds_count{status="403"}[5m])) > 20
+        labels:
+          severity: media
+        annotations:
+          summary: "Mais de 20 respostas 403 em 5 minutos: possivel tentativa de acessar tarefas de outros usuarios"
+
+      - alert: DiscoQuaseCheio
+        expr: node_filesystem_avail_bytes{mountpoint="/",fstype!="rootfs"} / node_filesystem_size_bytes{mountpoint="/",fstype!="rootfs"} < 0.10
+        for: 5m
+        labels:
+          severity: alta
+        annotations:
+          summary: "Menos de 10% de disco livre na VM"
