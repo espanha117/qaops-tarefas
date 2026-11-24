@@ -33,7 +33,7 @@ Atualizado em 24/11/2026 · Legenda: `[x]` concluído · `[ ]` pendente
 - [x] Casos positivos e negativos
 - [x] Testes unitários dos services ([`test/unit/`](test/unit))
 - [x] Testes de integração da API com Supertest ([`test/integration/`](test/integration))
-- [x] 80 testes ligados aos riscos levantados ([relatório, seção 3](RELATORIO.md#3-riscos))
+- [x] 80 testes ligados aos riscos levantados ([relatório, seção 3](Relatorio_Tecnico_QAOps_Tarefas.pdf))
 
 ## 5. Quality gates (mínimo exigido: 3)
 
@@ -42,7 +42,7 @@ Atualizado em 24/11/2026 · Legenda: `[x]` concluído · `[ ]` pendente
 - [x] Testes: 100% dos testes aprovados
 - [x] Cobertura: ≥ 75% de linhas, statements e funções e ≥ 60% de branches em `src/services/`
 - [x] Dependências: 0 vulnerabilidades `high` ou `critical`
-- [x] Ficha completa de cada gate: critério, justificativa, momento, evidência, consequência e limitação ([relatório, seção 6](RELATORIO.md#6-quality-gates))
+- [x] Ficha completa de cada gate: critério, justificativa, momento, evidência, consequência e limitação ([relatório, seção 6](Relatorio_Tecnico_QAOps_Tarefas.pdf))
 
 ## 6. Experimento
 
@@ -52,9 +52,9 @@ Atualizado em 24/11/2026 · Legenda: `[x]` concluído · `[ ]` pendente
 - [x] Reprovação não planejada pelo Gate 5 em 19/10: [execução 39265702696](https://github.com/espanha117/qaops-tarefas/actions/runs/39265702696)
 - [ ] Publicar relatório de testes também quando o pipeline falha (limitação apontada na seção 7 do relatório)
 
-## 7. Relatório técnico ([`RELATORIO.md`](RELATORIO.md))
+## 7. Relatório técnico ([`Relatorio_Tecnico_QAOps_Tarefas.pdf`](Relatorio_Tecnico_QAOps_Tarefas.pdf))
 
-- [x] 1. Identificação (falta a data da entrega)
+- [x] 1. Identificação
 - [x] 2. Contexto
 - [x] 3. Riscos
 - [x] 4. Pipeline
@@ -64,13 +64,13 @@ Atualizado em 24/11/2026 · Legenda: `[x]` concluído · `[ ]` pendente
 - [x] 8. Análise crítica
 - [x] 9. Contribuições de cada integrante
 - [x] Referências
-- [ ] Revisão final e conferência do tamanho (6 a 10 páginas)
+- [x] Revisão final e conferência do tamanho (10 páginas, em PDF)
 
 ## 8. Apresentação e entrega
 
 - [x] Pré-avaliação (29/10/2026)
-- [ ] Preparar apresentação final (10 a 12 min)
-- [ ] Registro final da dupla preenchido
+- [x] Preparar apresentação final (10 a 12 min)
+- [x] Registro final da dupla preenchido
 
 ## 9. Monitoramento (evolução, etapa MONITOR do ciclo DevOps)
 
@@ -88,7 +88,7 @@ Atualizado em 24/11/2026 · Legenda: `[x]` concluído · `[ ]` pendente
 - [x] Docker Compose com app, Prometheus, node-exporter e Grafana ([PR #42](https://github.com/espanha117/qaops-tarefas/pull/42))
 - [x] Banco SQLite em volume persistente e senhas só no `.env` da VM
 - [x] Painel do Grafana e 4 regras de alerta
-- [x] Evidências: painel normal, alertas `MuitosAcessosNegados` e `SistemaForaDoAr` em *firing* e recuperação ([relatório, seção 7](RELATORIO.md#7-experimentos))
+- [x] Evidências: painel normal, alertas `MuitosAcessosNegados` e `SistemaForaDoAr` em *firing* e recuperação ([relatório, seção 7](Relatorio_Tecnico_QAOps_Tarefas.pdf))
 - [x] Primeiro deploy a partir da `master` (24/11/2026)
 - [ ] Deploy automático (self-hosted runner) — fora do escopo, registrado como trabalho futuro
 - [ ] Notificação dos alertas (e-mail ou mensagem) — fora do escopo, registrado como limitação

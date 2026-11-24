@@ -98,7 +98,7 @@ CRUD de tarefas organizadas em um Kanban de 3 colunas (`todo` / `doing` / `done`
 
 ## Pipeline de qualidade (CI)
 
-Definido em [`.github/workflows/ci.yml`](.github/workflows/ci.yml), disparado em todo `push` e `pull_request`. Seis gates sequenciais, cada um bloqueando o pipeline se falhar — detalhes de critério/justificativa/evidência/consequência no relatório técnico ([`RELATORIO.md`](RELATORIO.md), seção 6):
+Definido em [`.github/workflows/ci.yml`](.github/workflows/ci.yml), disparado em todo `push` e `pull_request`. Seis gates sequenciais, cada um bloqueando o pipeline se falhar — detalhes de critério/justificativa/evidência/consequência no relatório técnico ([`Relatorio_Tecnico_QAOps_Tarefas.pdf`](Relatorio_Tecnico_QAOps_Tarefas.pdf), seção 6):
 
 1. Instalação de dependências (`npm ci`)
 2. Análise estática (`npm run lint`)
@@ -233,4 +233,4 @@ docker-compose.yml           # app + Prometheus + node-exporter + Grafana na VM
 | Adriana V. Seelig | Implantação na VM com Docker Compose, endpoint de métricas e seus testes, monitoramento com Prometheus e Grafana (painel e alertas), evidências da VM, README e checklist |
 | Gabriel A. Espanhol | Sistema base (Kanban, login e controle de acesso, interface), pipeline e quality gates, experimentos, correção das dependências vulneráveis, monitoramento do pipeline (`/health`, smoke test, execução agendada e Dependabot) e redação do relatório |
 
-Detalhes de contribuição individual no relatório técnico (`RELATORIO.md`, seção 9).
+Detalhes de contribuição individual no relatório técnico (`Relatorio_Tecnico_QAOps_Tarefas.pdf`, seção 9).
