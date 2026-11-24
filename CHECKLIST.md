@@ -54,7 +54,7 @@ Atualizado em 24/11/2026 · Legenda: `[x]` concluído · `[ ]` pendente
 
 ## 7. Relatório técnico ([`RELATORIO.md`](RELATORIO.md))
 
-- [ ] 1. Identificação (falta a data da entrega)
+- [x] 1. Identificação (falta a data da entrega)
 - [x] 2. Contexto
 - [x] 3. Riscos
 - [x] 4. Pipeline
@@ -62,13 +62,13 @@ Atualizado em 24/11/2026 · Legenda: `[x]` concluído · `[ ]` pendente
 - [x] 6. Quality gates
 - [x] 7. Experimentos
 - [x] 8. Análise crítica
-- [ ] 9. Contribuições de cada integrante
+- [x] 9. Contribuições de cada integrante
 - [x] Referências
 - [ ] Revisão final e conferência do tamanho (6 a 10 páginas)
 
 ## 8. Apresentação e entrega
 
-- [ ] Pré-avaliação (29/10/2026)
+- [x] Pré-avaliação (29/10/2026)
 - [ ] Preparar apresentação final (10 a 12 min)
 - [ ] Registro final da dupla preenchido
 
