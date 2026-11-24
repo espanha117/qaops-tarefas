@@ -111,9 +111,63 @@ O pipeline também roda toda segunda-feira (execução agendada), mesmo sem comm
 
 O relatório de cobertura é publicado como artifact da execução no GitHub Actions.
 
+## Implantação na VM (Docker Compose)
+
+O sistema roda numa VM Linux atrás de um firewall pfSense. O acesso é liberado só pela VPN ou para endereços IP autorizados nas regras do firewall. O [`docker-compose.yml`](docker-compose.yml) sobe quatro contêineres:
+
+| Serviço | O que faz | Porta |
+|---|---|---|
+| `app` | O QAOps Tarefas, construído pelo [`Dockerfile`](Dockerfile) | 3000 (pública) e 9464 (métricas, só na rede interna) |
+| `prometheus` | Coleta as métricas a cada 15 s e avalia as regras de alerta | 9090, só em `127.0.0.1` da VM |
+| `node-exporter` | Métricas da VM (CPU, memória, disco) | só na rede interna |
+| `grafana` | Painel de monitoramento e lista de alertas | 3001 |
+
+O banco SQLite fica no volume `app-data`, fora do contêiner, e por isso sobrevive a novos deploys. A política `restart: unless-stopped` religa os contêineres se eles caírem ou se a VM reiniciar.
+
+**Primeira instalação** (na VM, com Docker e o plugin Compose instalados):
+
+```bash
+git clone https://github.com/espanha117/qaops-tarefas.git
+cd qaops-tarefas
+cat > .env <<'FIM'
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=escolha-uma-senha
+GRAFANA_PASSWORD=escolha-outra-senha
+FIM
+chmod 600 .env
+docker compose up -d --build
+docker compose ps        # os 4 contêineres em running; o app fica (healthy)
+```
+
+O `.env` existe só na VM e está no `.gitignore`: nenhuma senha vai para o repositório. Não defina `NODE_ENV=production` enquanto o acesso for por HTTP, porque nesse modo o cookie de sessão passa a exigir HTTPS e o login deixa de funcionar.
+
+**Deploy de uma nova versão** (manual, depois que o PR passa pelos 6 gates e entra na `master`):
+
+```bash
+git checkout master && git pull
+docker compose up -d --build
+curl -s localhost:3000/health    # verificação pós-deploy
+```
+
+O deploy é manual porque a VM não fica aberta à internet, e os runners do GitHub Actions, que rodam na nuvem, não a alcançam. Automatizar exigiria um *self-hosted runner* na própria VM (ver relatório, seção 8).
+
+**Acesso:** o sistema fica em `http://IP-DA-VM:3000` e o Grafana em `http://IP-DA-VM:3001` (usuário `admin`, senha `GRAFANA_PASSWORD`), pela VPN ou a partir de um IP autorizado no pfSense. O Prometheus não tem senha e só escuta dentro da VM; para abrir a interface dele, use um túnel SSH: `ssh -L 9090:localhost:9090 usuario@IP-DA-VM` e acesse `http://localhost:9090`.
+
 ## Monitoramento
 
-`GET /health` é público e responde `200` com `{ "status": "ok", "uptime": <segundos>, "db": "ok" }`, ou `503` se o banco não responder. É o endereço usado pelo smoke test do pipeline e por qualquer ferramenta de monitoramento de disponibilidade.
+- **Disponibilidade:** `GET /health` é público e responde `200` com `{ "status": "ok", "uptime": <segundos>, "db": "ok" }`, ou `503` se o banco não responder. É usado pelo smoke test do pipeline (Gate 6) e pelo healthcheck do contêiner.
+- **Métricas:** [`src/metrics.js`](src/metrics.js) usa o `prom-client` para expor `/metrics` numa porta separada (`METRICS_PORT`, padrão 9464), que não é publicada fora da VM. A principal métrica é `http_request_duration_seconds`, um histograma por método, rota (o padrão, como `/api/tasks/:id`, nunca o id real) e código de status. Também são expostas as métricas padrão do processo Node.js.
+- **Painel:** o Grafana já sobe com o datasource do Prometheus e o painel **QAOps Tarefas — Monitoramento** ([`monitoring/grafana/`](monitoring/grafana)): sistema no ar, alertas disparados, requisições por minuto e por status, latência p95, respostas 400 e 403 (os riscos da seção 3 do relatório), erros 5xx e CPU, memória e disco da VM.
+- **Alertas** ([`monitoring/alertas.yml`](monitoring/alertas.yml)), avaliados pelo Prometheus e exibidos no Grafana (Alerting > Alert rules):
+
+| Regra | Dispara quando |
+|---|---|
+| `SistemaForaDoAr` | O app não responde por mais de 1 minuto |
+| `TaxaDeErros5xxAlta` | Mais de 5% das requisições terminam em 5xx por 2 minutos |
+| `MuitosAcessosNegados` | Mais de 20 respostas 403 em 5 minutos |
+| `DiscoQuaseCheio` | Menos de 10% de disco livre na VM por 5 minutos |
+
+Os alertas aparecem no Prometheus e no Grafana, mas não enviam notificação (e-mail ou mensagem). Para testar um alerta: `docker compose stop app`, aguardar cerca de 2 minutos e conferir `SistemaForaDoAr` em *firing*; depois, `docker compose start app`.
 
 ## Inspecionar o banco (SQLite)
 
@@ -141,10 +195,12 @@ src/
   db.js                     # criação/schema do banco SQLite (tasks, users, sessions)
   errors.js                 # classes de erro compartilhadas (Validation/NotFound/Forbidden/Auth)
   middleware/auth.js         # parsing de cookie, requireAuth, requireAdmin
+  metrics.js                # métricas para o Prometheus (prom-client), servidas na porta 9464
   routes/
     tasks.js                # endpoints REST de tarefas (autenticado, filtrado por dono)
     auth.js                 # login/logout/me
     users.js                # gestão de usuários (somente admin)
+    health.js               # GET /health (público)
   services/
     taskService.js          # regras de negócio de tarefas (validação, transição de status, dono)
     authService.js           # criação de usuário, hash/verificação de senha
@@ -154,7 +210,13 @@ scripts/
   seed-admin.js              # cria o primeiro usuário admin fora do bootstrap automático
 test/
   unit/                      # testes de services isolados (DB em memória)
-  integration/                # testes de API via Supertest (auth, users, tasks)
+  integration/                # testes de API via Supertest (auth, users, tasks, health, metrics)
+monitoring/
+  prometheus.yml             # alvos coletados pelo Prometheus
+  alertas.yml                # as 4 regras de alerta
+  grafana/                   # datasource e painel provisionados
+Dockerfile                   # imagem da aplicação
+docker-compose.yml           # app + Prometheus + node-exporter + Grafana na VM
 ```
 
 ## Como contribuir
@@ -168,7 +230,7 @@ test/
 
 | Integrante | Contribuição |
 |---|---|
-| _Integrante 1 Adriana V. Seelig_ | _a preencher_ |
-| _Integrante 2 Gabriel A. Espanhol_ | _a preencher_ |
+| Adriana V. Seelig | Implantação na VM com Docker Compose, endpoint de métricas e seus testes, monitoramento com Prometheus e Grafana (painel e alertas), evidências da VM, README e checklist |
+| Gabriel A. Espanhol | Sistema base (Kanban, login e controle de acesso, interface), pipeline e quality gates, experimentos, correção das dependências vulneráveis, monitoramento do pipeline (`/health`, smoke test, execução agendada e Dependabot) e redação do relatório |
 
 Detalhes de contribuição individual no relatório técnico (`RELATORIO.md`, seção 9).
